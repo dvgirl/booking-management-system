@@ -41,16 +41,11 @@ app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes")
 const FRONTEND_PATH = path.join(__dirname, "..", "booking-frontend", "dist");
 app.use(express.static(FRONTEND_PATH));
 
-// app.use((req, res, next) => {
-
-//   if (req.method === 'GET' && !req.url.startsWith('/api')) {
-//     return res.sendFile(path.join(__dirname, "../booking-frontend/dist/index.html"));
-//   }
-//   next();
-// });
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(FRONTEND_PATH, "index.html"));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.url.startsWith('/api')) {
+    return res.sendFile(path.join(FRONTEND_PATH, "index.html"));
+  }
+  next();
 });
 
 // Error handling middleware
