@@ -38,11 +38,10 @@ app.use("/api/reports/", require("./routes/report.routes"));
 app.use("/api/process", require("./routes/process.routes"));
 app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes"));
 
-app.use(express.static(path.join(__dirname, "../dist")));
+app.use(express.static(path.join(__dirname, "../booking-frontend/dist")));
 
-// Serve React app for all other routes
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../dist/index.html"));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../booking-frontend/dist/index.html"));
 });
 
 // Error handling middleware
