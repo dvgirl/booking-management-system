@@ -40,8 +40,11 @@ app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes")
 
 app.use(express.static(path.join(__dirname, "../booking-frontend/dist")));
 
-app.get("/:path*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../booking-frontend/dist/index.html"));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.url.startsWith('/api')) {
+    return res.sendFile(path.join(__dirname, "../booking-frontend/dist/index.html"));
+  }
+  next();
 });
 
 // Error handling middleware
