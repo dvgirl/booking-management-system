@@ -40,7 +40,7 @@ app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes")
 
 app.use(express.static(path.join(__dirname, "../booking-frontend/dist")));
 
-app.get("*", (req, res) => {
+app.get("(.*)", (req, res) => {
   res.sendFile(path.join(__dirname, "../booking-frontend/dist/index.html"));
 });
 
