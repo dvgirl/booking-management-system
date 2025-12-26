@@ -65,7 +65,7 @@ import DocumentPreview from "./pages/documents/DocumentPreview";
 import MasterDocumentVault from "./pages/documents/MasterDocumentVault";
 
 import PendingKyc from "./pages/kyc/PendingKyc";
-import MyKyc from "./pages/user/mykyc.jsx";
+import MyKyc from "./pages/user/Mykyc.jsx";
 
 export default function App() {
   return (
