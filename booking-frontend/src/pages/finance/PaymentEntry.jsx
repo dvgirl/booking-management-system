@@ -40,7 +40,7 @@ export default function PaymentEntry() {
             
             toast.success("Transaction committed. Booking Confirmed.");
             // Redirect back to booking list after success
-            setTimeout(() => navigate("/admin/bookings"), 1500);
+            setTimeout(() => navigate("/bookings"), 1500);
         } catch (err) {
             toast.error(err.response?.data?.message || "Ledger commit failed");
         } finally {

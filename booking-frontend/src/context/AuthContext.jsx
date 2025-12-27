@@ -32,6 +32,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // ADDED: Function to sync KYC status across the app
+  const updateKycStatus = (newStatus) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      
+      const updatedUser = { ...prevUser, kycStatus: newStatus };
+      
+      // Update localStorage so it stays updated on refresh
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
+
   const hasRole = (roles) => {
     if (!user) return false;
     if (Array.isArray(roles)) {
@@ -49,7 +62,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, login, logout, hasRole, updateKycStatus }}>
       {children}
     </AuthContext.Provider>
   );

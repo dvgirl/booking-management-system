@@ -33,7 +33,7 @@ export default function AdminBookingDetail() {
     try {
       await confirmBooking(id);
       toast.success("Booking confirmed");
-      navigate("/admin/bookings");
+      navigate("/bookings");
     } catch (err) {
       toast.error("Approval failed");
     }
@@ -43,7 +43,7 @@ export default function AdminBookingDetail() {
     try {
       await rejectBooking(id);
       toast.success("Booking rejected");
-      navigate("/admin/bookings");
+      navigate("/bookings");
     } catch (err) {
       toast.error("Rejection failed");
     }
@@ -58,7 +58,7 @@ export default function AdminBookingDetail() {
   if (!booking) return (
     <div className="p-10 text-center">
       <h2 className="text-xl font-bold">Booking not found</h2>
-      <button onClick={() => navigate("/admin/bookings")} className="mt-4 text-blue-600 font-bold underline">Go Back</button>
+      <button onClick={() => navigate("/bookings")} className="mt-4 text-blue-600 font-bold underline">Go Back</button>
     </div>
   );
 
@@ -74,7 +74,7 @@ export default function AdminBookingDetail() {
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <button 
-              onClick={() => navigate("/admin/bookings")}
+              onClick={() => navigate("/bookings")}
               className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 mb-2 block transition-colors"
             >
               ← Back to Approvals

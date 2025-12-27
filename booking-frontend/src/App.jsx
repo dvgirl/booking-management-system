@@ -87,7 +87,14 @@ export default function App() {
           />
 
           {/* Bookings */}
-          <Route path="/bookings/calendar" element={<BookingCalendar />} />
+          <Route
+            path="/bookings/calendar"
+            element={
+              <KycGuard allow="APPROVED">
+                <BookingCalendar />
+              </KycGuard>
+            }
+          />
           <Route path="/bookings/list" element={<BookingList />} />
           <Route path="/bookings/:id/edit" element={<BookingEdit />} />
 
@@ -102,14 +109,14 @@ export default function App() {
           <Route path="/checkin/upload" element={<CheckInUpload />} />
 
           {/* KYC */}
-          <Route path="/kyc" element={ <KycGuard allow="NOT_SUBMITTED"><KycForm /></KycGuard>}/>
-          <Route path="/kyc/pending" element={<KycGuard allow="PENDING"><KycPending /></KycGuard>}/>
-          <Route path="/kyc/rejected" element={<KycGuard allow="REJECTED"><KycRejected /></KycGuard>}/>
+          <Route path="/kyc" element={<KycGuard allow="NOT_SUBMITTED"><KycForm /></KycGuard>} />
+          <Route path="/kyc/pending" element={<KycGuard allow="PENDING"><KycPending /></KycGuard>} />
+          <Route path="/kyc/rejected" element={<KycGuard allow="REJECTED"><KycRejected /></KycGuard>} />
 
           <Route path="/pendnig-kyc" element={<PendingKyc />} />
           <Route path="/admin/kyc" element={<AdminKyc />} />
-          <Route path="/admin/bookings" element={<AdminBookingList />} />
-          <Route path="/admin/bookings/:id" element={<AdminBookingDetail />} />
+          <Route path="/bookings" element={<KycGuard allow="APPROVED"><AdminBookingList /></KycGuard>} />
+          <Route path="/bookings/:id" element={<AdminBookingDetail />} />
           <Route path="/kyc-list" element={<MyKyc />} />
 
 

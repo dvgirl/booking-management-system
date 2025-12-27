@@ -22,7 +22,9 @@ const {
     getBookingHistory,
     getPendingBookings,
     getBookingDetails,
-    updateBookingStatus
+    updateBookingStatus,
+    getBookingsByStatus,
+    getImminentCheckouts
 } = require("../controllers/booking.controller");
 const Booking = require("../models/Booking");
 
@@ -120,6 +122,12 @@ router.get(
 );
 
 router.get(
+    "/BookingsByStatus",
+    auth,
+    getBookingsByStatus
+);
+
+router.get(
     "/admin/:id",
     auth,
     role("ADMIN", "SUPER_ADMIN"),
@@ -131,6 +139,12 @@ router.patch(
     auth,
     role("ADMIN", "SUPER_ADMIN"),
     updateBookingStatus
+);
+
+router.get(
+    "/imminent-checkouts",
+    auth,
+    getImminentCheckouts
 );
 
 module.exports = router;

@@ -19,11 +19,23 @@ export default function CheckInSearch() {
     try {
       setLoading(true);
       const res = await getCheckinHistory();
-      const data = res?.data ? res.data : res;
-      setBookings(Array.isArray(data) ? data : []);
+        console.log("res" , res)
+      // The JSON you provided is a direct array. 
+      // This logic checks res.data first, then falls back to res itself.
+      const raw =
+        res?.data?.data ||   // for wrapped responses
+        res?.data ||         // for normal axios response
+        res;                 // fallback
+
+      if (Array.isArray(raw)) {
+        setBookings(raw);
+      } else {
+        setBookings([]);
+      }
     } catch (error) {
       console.error("History Load Error:", error);
       toast.error("Failed to load recent records");
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -35,10 +47,12 @@ export default function CheckInSearch() {
     try {
       setLoading(true);
       const res = await searchBooking(query.trim());
-      const data = res?.data ? res.data : res;
 
-      if (data) {
-        setBookings(Array.isArray(data) ? data : [data]);
+      // Handle direct array or direct object response
+      const rawData = res?.data || res;
+
+      if (rawData) {
+        setBookings(Array.isArray(rawData) ? rawData : [rawData]);
       } else {
         setBookings([]);
         toast.info("No matching records found");
@@ -55,8 +69,8 @@ export default function CheckInSearch() {
   const formatDate = (dateString) => {
     if (!dateString) return "---";
     const date = new Date(dateString);
-    return isNaN(date.getTime()) 
-      ? "---" 
+    return isNaN(date.getTime())
+      ? "---"
       : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
 
@@ -96,7 +110,7 @@ export default function CheckInSearch() {
         />
         <div className="absolute right-3 top-3 bottom-3 flex gap-2">
           {query && (
-            <button 
+            <button
               onClick={() => { setQuery(""); fetchHistory(); }}
               className="px-4 text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest"
             >
@@ -139,9 +153,9 @@ export default function CheckInSearch() {
                 <tr>
                   <td colSpan="4" className="px-10 py-32 text-center">
                     <div className="max-w-xs mx-auto">
-                        <FiInfo size={48} className="mx-auto text-slate-100 mb-4" />
-                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">Zero Records Found</p>
-                        <p className="text-slate-300 text-xs mt-2">Try searching by the exact mobile number or room identifier.</p>
+                      <FiInfo size={48} className="mx-auto text-slate-100 mb-4" />
+                      <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">Zero Records Found</p>
+                      <p className="text-slate-300 text-xs mt-2">Try searching by the exact mobile number or room identifier.</p>
                     </div>
                   </td>
                 </tr>
@@ -155,7 +169,8 @@ export default function CheckInSearch() {
                         </div>
                         <div>
                           <div className="text-lg font-black text-slate-800 tracking-tight">
-                            {item?.userId?.phone || item?.phone || "Unknown Guest"}
+                            {/* According to your JSON, phone is inside userId */}
+                            {item?.userId?.phone || item?.phone || "Guest"}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-black rounded tracking-widest">
@@ -169,7 +184,7 @@ export default function CheckInSearch() {
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                            <FiCalendar size={16} />
+                          <FiCalendar size={16} />
                         </div>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
@@ -185,24 +200,23 @@ export default function CheckInSearch() {
                     </td>
 
                     <td className="px-10 py-8">
-                        <div className="flex flex-col gap-2">
-                            <span className={`w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                            item?.status === 'CHECKED_IN' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                      <div className="flex flex-col gap-2">
+                        <span className={`w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${item?.status === 'CHECKED_IN' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                             item?.status === 'CHECKED_OUT' ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-amber-50 text-amber-600 border-amber-100'
-                            }`}>
-                            {item?.status?.replace('_', ' ') || 'PENDING'}
-                            </span>
-                            <div className="flex items-center gap-1.5 ml-1">
-                                <div className={`w-1.5 h-1.5 rounded-full ${item?.paymentStatus === 'PAID' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                    {item?.paymentStatus || 'UNPAID'}
-                                </span>
-                            </div>
+                          }`}>
+                          {item?.status?.replace('_', ' ') || 'PENDING'}
+                        </span>
+                        <div className="flex items-center gap-1.5 ml-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${item?.paymentStatus === 'PAID' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                            {item?.paymentStatus || 'UNPAID'}
+                          </span>
                         </div>
+                      </div>
                     </td>
 
                     <td className="px-10 py-8 text-right">
-                      <button 
+                      <button
                         onClick={() => navigate("/checkin/details", { state: item })}
                         className="inline-flex items-center justify-center w-12 h-12 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/10 rounded-2xl transition-all group/btn"
                       >

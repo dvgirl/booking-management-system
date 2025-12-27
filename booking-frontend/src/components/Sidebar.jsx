@@ -3,13 +3,21 @@ import { useContext, useState } from "react";
 import { AuthContext, ROLES } from "../context/AuthContext";
 
 export default function Sidebar() {
-    const { user, hasRole } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
     const location = useLocation();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-    const isActive = (path) =>
-        location.pathname === path ||
-        location.pathname.startsWith(path + "/");
+    // FIX: Refined Active Logic to prevent double highlighting
+    const isActive = (path) => {
+        if (location.pathname === path) return true;
+        
+        // Special case for Bookings vs Booking Calendar
+        if (path === "/bookings") {
+            return location.pathname.startsWith("/bookings/") && !location.pathname.startsWith("/bookings/calendar");
+        }
+
+        return location.pathname.startsWith(path + "/");
+    };
 
     const menuItems = [
         {
@@ -19,10 +27,10 @@ export default function Sidebar() {
             roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FRONT_DESK, ROLES.ACCOUNTANT, ROLES.OFFICER],
         },
         {
-            path: "/admin/bookings",
+            path: "/bookings",
             label: "Bookings",
             icon: "🏨",
-            roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FRONT_DESK],
+            roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FRONT_DESK, ROLES.USER, ROLES.GUEST],
         },
         {
             path: "/inventory/calendar",
@@ -76,41 +84,31 @@ export default function Sidebar() {
             path: "/bookings/calendar",
             label: "Booking Calendar",
             icon: "📅",
-            roles: [ROLES.USER, ROLES.GUEST]
+            roles: [ROLES.USER, ROLES.GUEST, ROLES.SUPER_ADMIN, ROLES.ADMIN]
         }
     ];
 
     const filteredMenuItems = menuItems.filter((item) => {
-        // User must have a role
         if (!user?.role) return false;
-
-        // Show menu only if user's role is explicitly allowed
         if (!item.roles.includes(user.role)) return false;
 
-        // Extra restriction: USER with unapproved KYC
-        if (user.role === "USER" && user.kycStatus !== "APPROVED") {
-            const allowedForUnapproved = ["/dashboard", "/kyc", "/kyc/pending", "/kyc/rejected"];
-            return allowedForUnapproved.includes(item.path);
+        if (user.role === "USER") {
+            const alwaysVisible = ["/kyc-list", "/dashboard"];
+            if (alwaysVisible.includes(item.path)) return true;
+            if (user.kycStatus !== "APPROVED") return false;
         }
-
         return true;
     });
 
     return (
         <>
-            {/* Mobile Menu Button - Styled with Blur */}
             <button
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
                 className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900/80 backdrop-blur-md text-white p-2.5 rounded-xl border border-slate-700 shadow-lg hover:bg-slate-800 transition-all"
             >
-                {isMobileOpen ? (
-                    <span className="block w-6 h-6 text-center leading-6 font-bold">✕</span>
-                ) : (
-                    <span className="block w-6 h-6 text-center leading-6 font-bold">☰</span>
-                )}
+                {isMobileOpen ? "✕" : "☰"}
             </button>
 
-            {/* Sidebar Container */}
             <aside
                 className={`
                     fixed lg:static inset-y-0 left-0 z-40
@@ -121,7 +119,6 @@ export default function Sidebar() {
                     h-screen flex flex-col shadow-2xl
                 `}
             >
-                {/* Branding Section */}
                 <div className="flex items-center justify-between px-6 py-8">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-lg shadow-inner">
@@ -131,15 +128,8 @@ export default function Sidebar() {
                             Guest Booking
                         </h2>
                     </div>
-                    <button
-                        onClick={() => setIsMobileOpen(false)}
-                        className="lg:hidden text-slate-400 hover:text-white transition-colors"
-                    >
-                        ✕
-                    </button>
                 </div>
 
-                {/* User Profile Card */}
                 {user && (
                     <div className="mx-4 mb-6 p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl backdrop-blur-sm">
                         <div className="flex items-center gap-3">
@@ -151,14 +141,13 @@ export default function Sidebar() {
                                     {user.name || user.phone || "User"}
                                 </p>
                                 <p className="text-blue-400 text-[11px] font-bold uppercase tracking-wider">
-                                    {user.role || "GUEST"}
+                                    {user.role} {user.role === "USER" && `(${user.kycStatus || 'PENDING'})`}
                                 </p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Navigation Items */}
                 <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pb-6">
                     <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p>
                     {filteredMenuItems.map((item) => {
@@ -185,16 +174,14 @@ export default function Sidebar() {
                     })}
                 </nav>
 
-                {/* Sidebar Footer (Optional) */}
                 <div className="p-4 border-t border-slate-800/60">
-                    <p className="text-[10px] text-center text-slate-500">© 2024 Admin Panel v2.0</p>
+                    <p className="text-[10px] text-center text-slate-500">© 2025 Admin Panel v2.0</p>
                 </div>
             </aside>
 
-            {/* Mobile Overlay - Smoother Fade */}
             {isMobileOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30 transition-opacity"
+                    className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}

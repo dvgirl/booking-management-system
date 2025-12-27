@@ -6,50 +6,53 @@ import ProtectedRoute from "../components/guards/ProtectedRoute";
 export default function MainLayout() {
     return (
         <ProtectedRoute>
-            <div className="flex min-h-screen bg-slate-50/50 selection:bg-blue-100 selection:text-blue-700">
-                {/* SIDEBAR: Desktop fixed width, internal mobile handling */}
-                <div className="hidden lg:block w-72 flex-shrink-0">
-                    <Sidebar />
-                </div>
+            <div className="flex min-h-screen bg-slate-50">
 
-                {/* MAIN CONTENT AREA */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    
-                    {/* TOPBAR: Sticky and Blurry for that modern feel */}
-                    <header className="sticky top-0 z-30">
+                {/* SIDEBAR */}
+                <aside className="hidden lg:flex w-72 flex-shrink-0">
+                    <Sidebar />
+                </aside>
+
+                {/* MAIN CONTENT WRAPPER */}
+                <div className="flex flex-col flex-1 min-h-screen overflow-hidden">
+
+                    {/* TOP BAR */}
+                    <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
                         <Topbar />
                     </header>
 
-                    {/* PAGE CONTENT:
-                        - Animated fade-in transition
-                        - Responsive padding
-                        - Max-width for professional data density
-                    */}
-                    <main className="flex-1 flex flex-col">
-                        <div className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-10">
-                            {/* This wrapper provides a subtle entry animation for all sub-routes */}
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
-                                <Outlet /> 
+                    {/* PAGE CONTENT */}
+                    <main className="flex-1 overflow-y-auto">
+                        <div className="max-w-[1600px] mx-auto px-4 py-6">
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <Outlet />
                             </div>
                         </div>
-
-                        {/* Professional Footer */}
-                        <footer className="mt-auto py-6 px-8 border-t border-slate-200 bg-white/50">
-                            <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                                <p className="text-[13px] font-medium text-slate-500">
-                                    © {new Date().getFullYear()} <span className="text-blue-600">Guest Booking Platform</span>. All rights reserved.
-                                </p>
-                                <div className="flex items-center gap-6">
-                                    <button className="text-[12px] font-semibold text-slate-400 hover:text-blue-600 transition-colors">Privacy Policy</button>
-                                    <button className="text-[12px] font-semibold text-slate-400 hover:text-blue-600 transition-colors">Support Center</button>
-                                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-[11px] font-bold text-green-700 uppercase tracking-tight">System Online</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </footer>
                     </main>
+
+                    {/* FOOTER */}
+                    <footer className="border-t bg-white px-6 py-4 text-sm text-slate-500">
+                        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+                            <span>
+                                © {new Date().getFullYear()}{" "}
+                                <span className="font-semibold text-blue-600">
+                                    Guest Booking Platform
+                                </span>
+                            </span>
+
+                            <div className="flex items-center gap-4">
+                                <span className="text-xs hover:text-blue-600 cursor-pointer">
+                                    Privacy Policy
+                                </span>
+                                <span className="text-xs hover:text-blue-600 cursor-pointer">
+                                    Support
+                                </span>
+                                <span className="flex items-center gap-1 text-green-600 text-xs font-semibold">
+                                    ● Online
+                                </span>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
             </div>
         </ProtectedRoute>

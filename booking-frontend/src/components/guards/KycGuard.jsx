@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { getMyKycStatus } from "../../api/kyc.api";
 import { Navigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext"; 
 
 export default function KycGuard({ allow, children }) {
+  const { user, updateKycStatus } = useContext(AuthContext); 
   const [status, setStatus] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,37 +12,59 @@ export default function KycGuard({ allow, children }) {
   useEffect(() => {
     getMyKycStatus()
       .then(res => {
-        setStatus(res.data.status);
-        setRole(res.data.role);
+        const data = res?.data || res;
+        const fetchedStatus = data.status;
+        const fetchedRole = data.role;
+
+        setStatus(fetchedStatus);
+        setRole(fetchedRole);
+        
+        // Sync with AuthContext so Sidebar updates
+        if (updateKycStatus && user?.kycStatus !== fetchedStatus) {
+            updateKycStatus(fetchedStatus);
+        }
       })
       .catch(() => {
         setStatus("NOT_SUBMITTED");
         setRole("USER");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [updateKycStatus, user?.kycStatus]);
 
-  if (loading) return <div className="p-6">Checking access...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+      <div className="text-blue-500 font-bold animate-pulse uppercase tracking-widest text-xs">
+        Verifying Security Clearance...
+      </div>
+    </div>
+  );
 
-  // ✅ Admin always allowed
-  if (role === "ADMIN") return children;
+  // 1. Admin Bypass
+  if (role === "ADMIN" || role === "SUPER_ADMIN") return children;
 
-  // ✅ FIX: Allow rendering if status matches OR if it's a re-submission case
-  // If the page expects "NOT_SUBMITTED" (the form), also allow "REJECTED" users to see it
+  // 2. SUCCESS: If user status matches the 'allow' prop, show the page
+  // (e.g., allow="APPROVED" and status is "APPROVED")
   if (allow === status || (allow === "NOT_SUBMITTED" && status === "REJECTED")) {
     return children;
   }
 
-  // 🔁 Redirect rules
-  if (status === "APPROVED") return <Navigate to="/bookings/calendar" replace />;
-  if (status === "PENDING") return <Navigate to="/kyc/pending" replace />;
+  // 3. REDIRECTS: Only redirect if the user is NOT on the correct page
+  if (status === "APPROVED" && allow !== "APPROVED") {
+    return <Navigate to="/bookings/calendar" replace />;
+  }
   
-  // Notice: We removed the REJECTED redirect from here if it's not the current allowed state
-  // to prevent the infinite loop when trying to go to the /kyc form.
+  if (status === "PENDING" && allow !== "PENDING") {
+    return <Navigate to="/kyc/pending" replace />;
+  }
+  
   if (status === "REJECTED" && allow !== "REJECTED") {
-     return <Navigate to="/kyc/rejected" replace />;
+    return <Navigate to="/kyc/rejected" replace />;
   }
 
-  // Default
-  return <Navigate to="/kyc" replace />;
+  if (status === "NOT_SUBMITTED" && allow !== "NOT_SUBMITTED") {
+    return <Navigate to="/kyc" replace />;
+  }
+
+  // Fallback
+  return children;
 }

@@ -76,8 +76,17 @@ export const rejectBooking = (id) =>
 
 
 export const getCheckinHistory = () => {
-  api.get("/bookings/checkin-history");
-}
+  return api.get("/bookings/checkin-history");
+};
 
 export const updateBookingStatus = (id, status, extraData = {}) =>
   api.patch(`/bookings/${id}/status`, { status, ...extraData });
+
+
+export const getBookingsByStatus = (status) =>
+  api.get("/bookings/BookingsByStatus", {
+    params: { status }
+  });
+
+export const getImminentCheckouts = () =>
+  api.get("/bookings/imminent-checkouts");

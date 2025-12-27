@@ -67,6 +67,32 @@ exports.getBookingDetails = async (req, res) => {
     }
 };
 
+exports.getBookingsByStatus = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const filter = {};
+
+        // Apply status filter if provided
+        if (status) {
+            filter.status = status.toUpperCase();
+        }
+
+        // 🔐 If NOT admin → restrict to own bookings only
+        if (req.user.role !== "ADMIN") {
+            filter.userId = req.user._id;
+        }
+
+        const bookings = await Booking.find(filter)
+            .populate("userId", "name phone")
+            .populate("roomId", "roomNumber")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(bookings);
+    } catch (error) {
+        console.error("Booking Fetch Error:", error);
+        res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+};
 
 // Helper function to check if room is available
 const isAvailable = async (roomId, checkIn, checkOut) => {
@@ -745,5 +771,24 @@ exports.getCheckInHistory = async (req, res) => {
         res.status(500).json({
             message: error.message || "Error fetching check-in history"
         });
+    }
+};
+
+exports.getImminentCheckouts = async (req, res) => {
+    try {
+        const now = new Date();
+        const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+        const bookings = await Booking.find({
+            status: "CHECKED_IN", // Only those currently in the hotel
+            checkOut: {
+                $gte: now,
+                $lte: oneHourLater
+            }
+        }).populate("userId", "name phone");
+
+        res.status(200).json({ success: true, count: bookings.length, data: bookings });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
