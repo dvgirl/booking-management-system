@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from "react";
 import * as TransactionAPI from "../../api/transaction.api";
-import { AuthContext, ROLES } from "../../context/AuthContext"; // Import AuthContext
+import { AuthContext, ROLES } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import { 
   FiArrowUpRight, 
@@ -8,17 +8,20 @@ import {
   FiCamera, 
   FiCheckCircle, 
   FiX, 
-  FiInfo 
+  FiInfo,
+  FiRefreshCw,
+  FiFileText,
+  FiCreditCard,
+  FiCalendar
 } from "react-icons/fi";
 
 export default function TransactionList() {
-  const { user, hasRole } = useContext(AuthContext); // Get user and role helper
+  const { hasRole } = useContext(AuthContext); 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState(null); 
   const [uploading, setUploading] = useState(false);
 
-  // Check if current user is just a regular USER
   const isStaff = hasRole([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FRONT_DESK, ROLES.ACCOUNTANT]);
 
   useEffect(() => {
@@ -32,14 +35,14 @@ export default function TransactionList() {
       const data = res?.data ? res.data : res;
       setTransactions(Array.isArray(data) ? data : []);
     } catch (error) {
-      toast.error("Error loading transactions");
+      toast.error("Error synchronizing ledger records");
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpload = async (e) => {
-    if (!isStaff) return; // Prevent user action
+    if (!isStaff) return;
     const file = e.target.files[0];
     if (!file || !selectedTx) return;
 
@@ -48,30 +51,26 @@ export default function TransactionList() {
 
     try {
       setUploading(true);
-      if (TransactionAPI.uploadProof) {
-        await TransactionAPI.uploadProof(selectedTx._id, formData);
-        toast.success("Proof uploaded successfully");
-        load(); 
-        setSelectedTx(null); 
-      }
+      await TransactionAPI.uploadProof(selectedTx._id, formData);
+      toast.success("Financial proof uploaded successfully");
+      load(); 
+      setSelectedTx(null); 
     } catch (error) {
-      toast.error("Upload failed");
+      toast.error("Cloud storage upload failed");
     } finally {
       setUploading(false);
     }
   };
 
   const handleVerify = async (id) => {
-    if (!isStaff) return; // Prevent user action
+    if (!isStaff) return;
     try {
-      if (TransactionAPI.verifyTransaction) {
-        await TransactionAPI.verifyTransaction(id);
-        toast.success("Transaction Verified");
-        load();
-        setSelectedTx(null);
-      }
+      await TransactionAPI.verifyTransaction(id);
+      toast.success("Ledger Entry Verified");
+      load();
+      setSelectedTx(null);
     } catch (error) {
-      toast.error("Verification failed");
+      toast.error("Verification protocol failed");
     }
   };
 
@@ -84,75 +83,87 @@ export default function TransactionList() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-10 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] p-6 lg:p-12 animate-in fade-in duration-500">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-10 flex justify-between items-center">
+        
+        {/* HEADER SECTION */}
+        <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-900">
-              {isStaff ? "Finance" : "My Payments"}
+            <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">
+              {isStaff ? "Treasury Logs" : "Payment Archive"}
             </h1>
-            <p className="text-slate-500 font-medium">
-              {isStaff ? "Manage payments and verification" : "View your transaction history"}
+            <p className="text-slate-500 font-medium text-sm mt-1">
+              {isStaff ? "Cross-reference and verify incoming capital" : "History of all financial commitments"}
             </p>
           </div>
           <button 
             onClick={load} 
-            className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold text-sm"
+            className="flex items-center gap-2 px-8 py-3.5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm font-black text-[10px] uppercase tracking-widest"
           >
-            Refresh
+            <FiRefreshCw className={loading ? "animate-spin" : ""} />
+            Sync Records
           </button>
         </header>
 
-        {/* Transactions Table */}
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+        {/* LEDGER TABLE */}
+        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full">
               <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b">Transaction</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b">Amount</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b">Status</th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 border-b">Details</th>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-10 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Classification</th>
+                  <th className="px-10 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Capital Flow</th>
+                  <th className="px-10 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Lifecycle</th>
+                  <th className="px-10 py-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
-                  <tr><td colSpan="4" className="py-20 text-center text-slate-400 italic">Loading records...</td></tr>
+                  <tr><td colSpan="4" className="py-32 text-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div></td></tr>
                 ) : transactions.length === 0 ? (
-                  <tr><td colSpan="4" className="py-20 text-center text-slate-400 italic">No transactions found</td></tr>
+                  <tr><td colSpan="4" className="py-32 text-center text-slate-400 font-black uppercase text-[10px] tracking-widest">Zero entries found in registry</td></tr>
                 ) : transactions.map((t) => (
-                  <tr key={t._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${t.direction === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                  <tr key={t._id} className="group hover:bg-slate-50/50 transition-all">
+                    <td className="px-10 py-7">
+                      <div className="flex items-center gap-5">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110 ${
+                          t.direction === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                        }`}>
                           {t.direction === 'IN' ? <FiArrowDownLeft /> : <FiArrowUpRight />}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{t.transactionRef || 'Txn'}</div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase">
-                            {t.paymentMode} • {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A'}
+                          <div className="font-black text-slate-900 tracking-tight">{t.transactionRef || 'SYSTEM_TXN'}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{t.paymentMode}</span>
+                            <span className="h-1 w-1 rounded-full bg-slate-200"></span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                              {new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className={`font-black ${t.direction === 'IN' ? 'text-slate-900' : 'text-rose-600'}`}>
+                    <td className="px-10 py-7">
+                      <div className={`text-lg font-black tracking-tight ${t.direction === 'IN' ? 'text-slate-900' : 'text-rose-600'}`}>
                         {t.direction === 'OUT' ? '-' : '+'} {formatCurrency(t.amount)}
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase ${
-                        t.status === 'VERIFIED' || t.status === 'SUCCESS' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                    <td className="px-10 py-7">
+                      <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-[9px] font-black rounded-xl uppercase border tracking-widest ${
+                        t.status === 'VERIFIED' || t.status === 'SUCCESS' 
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                          : 'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${t.status === 'VERIFIED' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-10 py-7 text-right">
                       <button 
                         onClick={() => setSelectedTx(t)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-all"
+                        className="p-3 bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-2xl transition-all shadow-sm"
                       >
-                        <FiInfo size={20} />
+                        <FiInfo size={18} />
                       </button>
                     </td>
                   </tr>
@@ -163,84 +174,88 @@ export default function TransactionList() {
         </div>
       </div>
 
-      {/* Detail Drawer */}
+      {/* DETAIL DRAWER */}
       {selectedTx && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedTx(null)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedTx(null)} />
           
-          <div className="relative w-full max-w-md bg-white h-full shadow-2xl p-8 flex flex-col">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black uppercase tracking-tight">Receipt Detail</h2>
-              <button onClick={() => setSelectedTx(null)} className="p-2 hover:bg-slate-100 rounded-full"><FiX /></button>
-            </div>
+          <div className="relative w-full max-w-md bg-white h-full shadow-2xl p-10 flex flex-col animate-in slide-in-from-right duration-500">
+            <header className="flex justify-between items-center mb-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><FiFileText /></div>
+                <h2 className="text-xl font-black uppercase tracking-tighter">Entry Data</h2>
+              </div>
+              <button onClick={() => setSelectedTx(null)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"><FiX /></button>
+            </header>
 
-            <div className="space-y-6 flex-1 overflow-y-auto">
-              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Total Amount</p>
-                <p className="text-3xl font-black text-slate-900">{formatCurrency(selectedTx.amount)}</p>
-                <div className="mt-4 flex gap-4">
+            <div className="space-y-8 flex-1 overflow-y-auto">
+              <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-100 relative overflow-hidden">
+                <FiCreditCard className="absolute top-[-20px] right-[-20px] text-white/5" size={150} />
+                <p className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2">Accounting Value</p>
+                <p className="text-4xl font-black tracking-tighter">{formatCurrency(selectedTx.amount)}</p>
+                
+                <div className="mt-8 grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Method</p>
-                    <p className="text-xs font-bold">{selectedTx.paymentMode}</p>
+                    <p className="text-[9px] font-black text-indigo-300 uppercase mb-1">Payment Method</p>
+                    <p className="text-sm font-bold">{selectedTx.paymentMode}</p>
                   </div>
-                  <div className="border-r border-slate-200" />
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Ref ID</p>
-                    <p className="text-xs font-bold">{selectedTx.transactionRef || "N/A"}</p>
+                    <p className="text-[9px] font-black text-indigo-300 uppercase mb-1">Time Stamp</p>
+                    <p className="text-sm font-bold flex items-center gap-2"><FiCalendar size={12}/> {new Date(selectedTx.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-3">Transaction Proof</p>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Merchant/Customer Proof</label>
                 {selectedTx.proofUrl ? (
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm group relative">
+                  <div className="rounded-[2rem] overflow-hidden border-4 border-slate-50 shadow-inner group relative">
                     <img 
                       src={`${import.meta.env.VITE_API_BASE_URL}/${selectedTx.proofUrl}`} 
                       alt="Proof" 
-                      className="w-full h-48 object-cover"
+                      className="w-full h-64 object-cover transition-transform group-hover:scale-105 duration-700"
                     />
-                    {/* Only show "Change Proof" if user is Staff */}
                     {isStaff && (
-                      <label className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
-                         <span className="text-white font-black text-[10px] uppercase flex items-center gap-2">
-                          <FiCamera /> Change Proof
+                      <label className="absolute inset-0 bg-slate-900/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm">
+                         <span className="px-6 py-3 bg-white text-slate-900 rounded-xl font-black text-[10px] uppercase flex items-center gap-2 shadow-xl">
+                          <FiCamera /> Swap Document
                          </span>
                          <input type="file" className="hidden" onChange={handleUpload} />
                       </label>
                     )}
                   </div>
                 ) : (
-                  <div className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-2xl ${isStaff ? 'hover:bg-slate-50 cursor-pointer' : 'bg-slate-50'}`}>
-                    <FiCamera className="text-slate-300 text-2xl mb-2" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase px-4 text-center">
-                      {isStaff ? (uploading ? "Uploading..." : "Upload Receipt") : "No Receipt Uploaded Yet"}
+                  <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-slate-200 rounded-[2.5rem] transition-all ${isStaff ? 'hover:bg-slate-50 hover:border-indigo-300 cursor-pointer' : 'bg-slate-50'}`}>
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm flex items-center justify-center text-slate-300 mb-4">
+                      <FiCamera size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center px-8 leading-relaxed">
+                      {isStaff ? (uploading ? "Uploading to secure server..." : "Attach transaction receipt") : "No documentation provided"}
                     </span>
                     {isStaff && <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />}
-                  </div>
+                  </label>
                 )}
               </div>
             </div>
 
-            {/* Action Buttons: Only visible for Staff */}
-            {isStaff && selectedTx.status !== 'VERIFIED' && (
-              <div className="pt-6 border-t mt-auto">
+            {/* ACTION ZONE */}
+            <footer className="pt-8 border-t border-slate-100 mt-auto">
+              {isStaff && selectedTx.status !== 'VERIFIED' ? (
                 <button 
                   onClick={() => handleVerify(selectedTx._id)}
-                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-indigo-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-[11px] tracking-[0.2em] hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-95"
                 >
-                  <FiCheckCircle /> Verify Transaction
+                  <FiCheckCircle size={18} /> Confirm Ledger Entry
                 </button>
-              </div>
-            )}
-            
-            {!isStaff && (
-              <div className="pt-6 border-t mt-auto">
-                <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Verified payments reflect here automatically
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="bg-slate-50 p-5 rounded-2xl flex items-center justify-center gap-3 text-slate-400">
+                  <FiCheckCircle className={selectedTx.status === 'VERIFIED' ? "text-emerald-500" : ""} />
+                  <p className="text-[10px] font-black uppercase tracking-[0.1em]">
+                    {selectedTx.status === 'VERIFIED' ? "Record locked & verified" : "Pending Treasury Review"}
+                  </p>
+                </div>
+              )}
+            </footer>
           </div>
         </div>
       )}

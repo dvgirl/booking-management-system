@@ -11,7 +11,8 @@ const {
     lockTransaction,
     listTransactions,
     initiateBookingWithPayment,
-    verifyCashfreePayment
+    verifyCashfreePayment,
+    createPayment
 } = require("../controllers/transaction.controller");
 
 router.post("/create", auth, createTransaction);
@@ -42,5 +43,7 @@ router.get("/", auth, listTransactions);
 router.post("/initiateCashfreePayment", auth, initiateBookingWithPayment)
 
 router.post("/verifyCashfreePayment", auth, verifyCashfreePayment)
+
+router.post("/payment", auth, role("ADMIN", "SUPER_ADMIN"), createPayment);
 
 module.exports = router;

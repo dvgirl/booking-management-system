@@ -38,15 +38,15 @@ app.use("/api/reports/", require("./routes/report.routes"));
 app.use("/api/process", require("./routes/process.routes"));
 app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes"));
 
-const FRONTEND_PATH = path.join(__dirname, "..", "..", "booking-frontend", "dist");
-app.use(express.static(FRONTEND_PATH));
+// const FRONTEND_PATH = path.join(__dirname, "..", "..", "booking-frontend", "dist");
+// app.use(express.static(FRONTEND_PATH));
 
-app.use((req, res, next) => {
-  if (req.method === 'GET' && !req.url.startsWith('/api')) {
-    return res.sendFile(path.join(FRONTEND_PATH, "index.html"));
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   if (req.method === 'GET' && !req.url.startsWith('/api')) {
+//     return res.sendFile(path.join(FRONTEND_PATH, "index.html"));
+//   }
+//   next();
+// });
 
 // Error handling middleware
 app.use((err, req, res, next) => {

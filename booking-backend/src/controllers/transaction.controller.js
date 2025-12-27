@@ -216,21 +216,22 @@ exports.lockTransaction = async (req, res) => {
 };
 
 exports.listTransactions = async (req, res) => {
-    try {
-        const filters = { ...req.query };
+  try {
+    const filters = { ...req.query };
 
-        // 🔐 If logged-in user is NOT admin, show only their transactions
-        if (req.user.role !== "ADMIN") {
-            filters.userId = req.user.id;
-        }
-
-        const txns = await Transaction.find(filters)
-            .populate("bookingId userId verifiedBy");
-
-        res.json(txns);
-    } catch (error) {
-        res.status(500).json({ message: "Failed to fetch transactions" });
+    // 🔐 If not admin, show only user's own transactions
+    if (req.user.role !== "ADMIN") {
+      filters.userId = req.user.id;
     }
+
+    const txns = await Transaction.find(filters)
+      .sort({ createdAt: -1 }) // ✅ newest first
+      .populate("bookingId userId verifiedBy");
+
+    res.json(txns);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch transactions" });
+  }
 };
 
 exports.createPayment = async (req, res) => {
@@ -242,7 +243,7 @@ exports.createPayment = async (req, res) => {
         paymentMode: req.body.paymentMode,
         transactionRef: req.body.transactionRef,
         isOffline: req.body.isOffline,
-        status: req.body.isOffline ? "PENDING" : "SUCCESS"
+        status: "SUCCESS"
     });
 
     res.json(txn);

@@ -1,30 +1,30 @@
 import { useState } from "react";
 import { createPayment } from "../../api/transaction.api";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+import {
+    FiChevronLeft, FiSmartphone, FiDollarSign, FiHash, FiShield, FiSave
+} from "react-icons/fi";
 
 export default function PaymentEntry() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { bookingId, userId } = location.state || {};
+    
+    // Extract data passed from Booking List
+    const { bookingId, userId, amount, roomNumber } = location.state || {};
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
 
     const [form, setForm] = useState({
         mode: "OFFLINE",
         method: "CASH",
-        amount: "",
+        amount: amount || "", // Auto-fills from booking data
         referenceId: "",
         createdBy: "Front Desk"
     });
 
     const submit = async () => {
-        setError("");
-        setSuccess(false);
-
         if (!form.amount || parseFloat(form.amount) <= 0) {
-            setError("Please enter a valid amount");
-            return;
+            return toast.error("Please enter a valid amount");
         }
 
         setLoading(true);
@@ -32,111 +32,128 @@ export default function PaymentEntry() {
             await createPayment({
                 bookingId,
                 userId,
-                ...form,
-                amount: parseFloat(form.amount)
+                amount: parseFloat(form.amount),
+                paymentMode: form.method,
+                isOffline: form.mode === "OFFLINE",
+                transactionRef: form.referenceId
             });
-            setSuccess(true);
-            setTimeout(() => {
-                navigate("/finance/list");
-            }, 2000);
+            
+            toast.success("Transaction committed. Booking Confirmed.");
+            // Redirect back to booking list after success
+            setTimeout(() => navigate("/admin/bookings"), 1500);
         } catch (err) {
-            setError(err.response?.data?.message || "Failed to record payment. Please try again.");
+            toast.error(err.response?.data?.message || "Ledger commit failed");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="p-4 lg:p-6 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Payment Entry</h2>
+        <div className="min-h-screen bg-[#f8fafc] p-6 lg:p-12 animate-in fade-in duration-500">
+            <div className="max-w-2xl mx-auto">
 
-            {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                    {error}
-                </div>
-            )}
-
-            {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-                    Payment recorded successfully! Redirecting...
-                </div>
-            )}
-
-            <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode *</label>
-                        <select
-                            className="input"
-                            value={form.mode}
-                            onChange={e => setForm({ ...form, mode: e.target.value })}
-                        >
-                            <option value="OFFLINE">Offline</option>
-                            <option value="ONLINE">Online</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
-                        <select
-                            className="input"
-                            value={form.method}
-                            onChange={e => setForm({ ...form, method: e.target.value })}
-                        >
-                            <option value="CASH">Cash</option>
-                            <option value="UPI">UPI</option>
-                            <option value="BANK_TRANSFER">Bank Transfer</option>
-                            <option value="RAZORPAY">Razorpay</option>
-                            <option value="CARD">Card</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
-                        <input
-                            placeholder="Enter amount"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="input"
-                            value={form.amount}
-                            onChange={e => setForm({ ...form, amount: e.target.value })}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Reference ID / UTR</label>
-                        <input
-                            placeholder="Enter reference number (optional)"
-                            className="input"
-                            value={form.referenceId}
-                            onChange={e => setForm({ ...form, referenceId: e.target.value })}
-                        />
-                    </div>
-                </div>
-
-                {bookingId && (
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                            <span className="font-medium">Booking ID:</span> {bookingId}
-                        </p>
-                    </div>
-                )}
-
-                <div className="flex gap-4 pt-4">
+                <header className="mb-10">
                     <button
-                        onClick={submit}
-                        disabled={loading || success}
-                        className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-all mb-4"
                     >
-                        {loading ? "Processing..." : "Save Payment"}
+                        <FiChevronLeft /> Cancel & Return
                     </button>
-                    <button
-                        onClick={() => navigate("/finance/list")}
-                        className="btn-secondary"
-                    >
-                        Cancel
-                    </button>
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">Settlement Entry</h1>
+                    <p className="text-slate-500 font-medium text-sm mt-1">Recording payment for Booking Confimation.</p>
+                </header>
+
+                <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                    
+                    {/* MODE TOGGLE */}
+                    <div className="bg-slate-50 p-2 flex gap-1 border-b border-slate-100">
+                        {["OFFLINE", "ONLINE"].map((m) => (
+                            <button
+                                key={m}
+                                onClick={() => setForm({ ...form, mode: m })}
+                                className={`flex-1 py-3 rounded-2xl text-[10px] font-black tracking-widest transition-all ${form.mode === m
+                                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100"
+                                        : "text-slate-400 hover:text-slate-600"
+                                    }`}
+                            >
+                                {m} MODE
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="p-8 md:p-12 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* METHOD */}
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                    <FiSmartphone /> Settlement Method
+                                </label>
+                                <select
+                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl px-5 py-4 font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all shadow-inner"
+                                    value={form.method}
+                                    onChange={e => setForm({ ...form, method: e.target.value })}
+                                >
+                                    <option value="CASH">💵 Physical Cash</option>
+                                    <option value="UPI">📱 Unified Payments (UPI)</option>
+                                    <option value="BANK_TRANSFER">🏦 Bank Wire</option>
+                                    <option value="CARD">🏧 Terminal Swipe</option>
+                                </select>
+                            </div>
+
+                            {/* AMOUNT */}
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                    <FiDollarSign /> Transaction Value
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300">₹</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl pl-10 pr-5 py-4 font-black text-xl text-slate-900 focus:bg-white focus:border-indigo-500 outline-none transition-all shadow-inner"
+                                        value={form.amount}
+                                        onChange={e => setForm({ ...form, amount: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* REFERENCE ID */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                <FiHash /> Audit Reference / UTR
+                            </label>
+                            <input
+                                placeholder="Receipt number or Transaction ID"
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl px-6 py-4 font-mono text-sm font-bold focus:bg-white focus:border-indigo-500 outline-none transition-all shadow-inner"
+                                value={form.referenceId}
+                                onChange={e => setForm({ ...form, referenceId: e.target.value })}
+                            />
+                        </div>
+
+                        {/* LINKED DATA DISPLAY */}
+                        {bookingId && (
+                            <div className="bg-indigo-50/50 p-6 rounded-[1.5rem] border border-indigo-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Linked Booking</p>
+                                    <p className="text-sm font-mono font-bold text-indigo-900">ID: {bookingId.slice(-8)}</p>
+                                    {roomNumber && (
+                                        <p className="text-xs font-black text-indigo-600">ROOM: {roomNumber}</p>
+                                    )}
+                                </div>
+                                <div className="p-3 bg-white rounded-xl shadow-sm text-indigo-600">
+                                    <FiShield />
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={submit}
+                            disabled={loading}
+                            className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                        >
+                            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><FiSave /> Confirm & Pay</>}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

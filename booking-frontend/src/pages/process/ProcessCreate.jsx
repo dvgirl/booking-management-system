@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createProcess } from "../../api/process.api";
 import { toast } from "react-toastify";
+import { 
+  FiChevronLeft, FiPlus, FiBriefcase, FiTag, 
+  FiFileText, FiUser, FiFlag, FiDatabase 
+} from "react-icons/fi";
 
 export default function ProcessCreate() {
   const navigate = useNavigate();
@@ -9,7 +13,7 @@ export default function ProcessCreate() {
   const [form, setForm] = useState({
     type: "CALL",
     mode: "OFFLINE",
-    isOffline: true, // Matches your backend req.body.isOffline
+    isOffline: true,
     title: "",
     description: "",
     bookingId: "",
@@ -33,65 +37,76 @@ export default function ProcessCreate() {
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title || !form.assignedTo) {
-      return toast.warn("Please fill in the required fields");
+      return toast.warn("Title and Assignment are required");
     }
 
     try {
       setLoading(true);
       await createProcess(form);
-      toast.success("Task created successfully");
-      navigate("/process/dashboard");
+      toast.success("Operational task dispatched.");
+      navigate("/process/list"); // Updated to point to your list view
     } catch (err) {
-      toast.error("Failed to create task");
+      toast.error("Process creation failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 md:p-12 font-sans text-slate-900">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#f8fafc] p-6 lg:p-12 animate-in fade-in duration-500">
+      <div className="max-w-3xl mx-auto">
         
-        {/* Header */}
-        <div className="mb-10">
+        {/* TOP NAV & HEADER */}
+        <header className="mb-12">
           <button 
             onClick={() => navigate(-1)}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 mb-2 block"
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-colors mb-4"
           >
-            ← Cancel and Go Back
+            <FiChevronLeft /> Return to Dashboard
           </button>
-          <h1 className="text-3xl font-black tracking-tight">Create New Task</h1>
-          <p className="text-slate-500 font-medium">Assign a new process or facility request to the team.</p>
-        </div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+              <FiPlus size={24} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight text-slate-900">Initialize Process</h1>
+              <p className="text-slate-500 font-medium text-sm mt-1">Deploy a new operational task to the field team.</p>
+            </div>
+          </div>
+        </header>
 
-        {/* Form Card */}
-        <form onSubmit={submit} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 md:p-12 space-y-8">
+        <form onSubmit={submit} className="space-y-6">
           
-          {/* Row 1: Type & Mode */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Process Type</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* TYPE SELECTION */}
+            <div className="md:col-span-2 space-y-2">
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <FiBriefcase /> Process Category
+              </label>
               <select 
                 name="type"
                 value={form.type}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                className="w-full bg-white border border-slate-200 rounded-[1.5rem] px-6 py-4 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all cursor-pointer appearance-none shadow-sm"
               >
-                <option value="CALL">📞 CALL</option>
-                <option value="FACILITY">🏨 FACILITY</option>
-                <option value="CANCELLATION">🚫 CANCELLATION</option>
-                <option value="SUPPORT">🛠️ SUPPORT</option>
-                <option value="OTHER">📁 OTHER</option>
+                <option value="CALL">📞 Voice Communication</option>
+                <option value="FACILITY">🏨 Facility / Room Service</option>
+                <option value="CANCELLATION">🚫 Reservation Void</option>
+                <option value="SUPPORT">🛠️ Technical Support</option>
+                <option value="OTHER">📁 Miscellaneous</option>
               </select>
             </div>
 
+            {/* MODE SELECTION */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Operation Mode</label>
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <FiDatabase /> Environment
+              </label>
               <select 
                 name="mode"
                 value={form.mode}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                className="w-full bg-white border border-slate-200 rounded-[1.5rem] px-6 py-4 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all shadow-sm"
               >
                 <option value="OFFLINE">OFFLINE</option>
                 <option value="ONLINE">ONLINE</option>
@@ -99,80 +114,102 @@ export default function ProcessCreate() {
             </div>
           </div>
 
-          {/* Row 2: Title */}
+          {/* TITLE */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Task Title</label>
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+              <FiTag /> Task Identifier
+            </label>
             <input
               name="title"
-              placeholder="e.g., Room 102 AC Repair"
-              className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="Primary objective (e.g. Guest Check-in Assistance)"
+              className="w-full bg-white border border-slate-200 rounded-[1.5rem] px-6 py-4 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all shadow-sm"
               onChange={handleChange}
             />
           </div>
 
-          {/* Row 3: Description */}
+          {/* DESCRIPTION */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Detailed Description</label>
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+              <FiFileText /> Detailed Briefing
+            </label>
             <textarea
               name="description"
               rows="4"
-              placeholder="What needs to be done?"
-              className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-medium placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+              placeholder="Describe the operational requirements and expected outcomes..."
+              className="w-full bg-white border border-slate-200 rounded-[2rem] px-6 py-5 font-medium placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all resize-none shadow-sm"
               onChange={handleChange}
             />
           </div>
 
-          {/* Row 4: IDs and Assignment */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* BOOKING REFERENCE */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Booking ID (Optional)</label>
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <FiDatabase /> Booking Link (Optional)
+              </label>
               <input
                 name="bookingId"
-                placeholder="#882910"
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-mono font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="ID: 507f1f..."
+                className="w-full bg-white border border-slate-200 rounded-[1.5rem] px-6 py-4 font-mono text-sm font-bold placeholder:text-slate-200 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 onChange={handleChange}
               />
             </div>
+
+            {/* ASSIGNMENT */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Assign To (Staff ID)</label>
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <FiUser /> Assigned Officer
+              </label>
               <input
                 name="assignedTo"
-                placeholder="User ID or Name"
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Staff Phone or System ID"
+                className="w-full bg-white border border-slate-200 rounded-[1.5rem] px-6 py-4 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 onChange={handleChange}
               />
             </div>
           </div>
 
-          {/* Row 5: Priority */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Priority Level</label>
-            <div className="flex gap-4">
-              {['LOW', 'MEDIUM', 'HIGH'].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setForm({ ...form, priority: p })}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${
-                    form.priority === p 
-                    ? (p === 'HIGH' ? 'bg-red-600 text-white' : p === 'MEDIUM' ? 'bg-orange-500 text-white' : 'bg-slate-900 text-white')
-                    : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+          {/* PRIORITY SELECTOR */}
+          <div className="space-y-4 pt-4">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+              <FiFlag /> Priority Classification
+            </label>
+            <div className="flex flex-wrap md:flex-nowrap gap-3">
+              {['LOW', 'MEDIUM', 'HIGH'].map((p) => {
+                const isSelected = form.priority === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm({ ...form, priority: p })}
+                    className={`flex-1 py-4 rounded-2xl text-[11px] font-black tracking-[0.2em] transition-all border-2 ${
+                      isSelected 
+                      ? (p === 'HIGH' ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-100' : p === 'MEDIUM' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200')
+                      : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Action Button */}
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-100 active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Creating..." : "Save Process"}
-          </button>
+          {/* SUBMIT BUTTON */}
+          <div className="pt-8">
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all shadow-2xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>Deploy Task & Registry Log</>
+              )}
+            </button>
+          </div>
+
         </form>
       </div>
     </div>
