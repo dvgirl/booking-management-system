@@ -650,50 +650,83 @@ exports.searchBooking = async (req, res) => {
 };
 
 exports.updateBookingStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status, kycIds } = req.body; // Status: CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED
+  try {
+    const { id } = req.params;
+    let { status, kycIds } = req.body;
 
-        const booking = await Booking.findById(id);
-        if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-        // Logic for Inventory Allocation
-        if (status === "CONFIRMED") {
-            await allocateInventory(booking);
-            booking.confirmationNumber = `CNF-${Date.now()}`;
-        }
-
-        // Logic for Inventory Release
-        if (status === "CHECKED_OUT" || status === "CANCELLED") {
-            await releaseInventory(booking);
-        }
-
-        // Update basic fields
-        booking.status = status;
-        
-        // If checking in, attach KYC if provided
-        if (status === "CHECKED_IN") {
-            if (kycIds) booking.kycIds = kycIds;
-            booking.checkInVerified = true;
-        }
-
-        // Add to history log
-        booking.modificationHistory.push({
-            modifiedBy: req.user.id,
-            changes: { status },
-            modifiedAt: new Date()
-        });
-
-        await booking.save();
-
-        res.json({ 
-            message: `Booking updated to ${status.replace('_', ' ')}`, 
-            booking 
-        });
-    } catch (error) {
-        console.error("Update error:", error);
-        res.status(500).json({ message: error.message || "Failed to update status" });
+    // Normalize status (in case object is sent)
+    if (typeof status === "object" && status !== null) {
+      status = status.status;
     }
+
+    const allowedStatuses = [
+      "PENDING",
+      "CONFIRMED",
+      "CHECKED_IN",
+      "CHECKED_OUT",
+      "CANCELLED"
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid booking status"
+      });
+    }
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // ========================
+    // Inventory Logic
+    // ========================
+    if (status === "CONFIRMED" && booking.status !== "CONFIRMED") {
+      await allocateInventory(booking);
+      booking.confirmationNumber = `CNF-${Date.now()}`;
+    }
+
+    if (
+      (status === "CHECKED_OUT" || status === "CANCELLED") &&
+      booking.status !== status
+    ) {
+      await releaseInventory(booking);
+    }
+
+    // ========================
+    // Check-in Logic
+    // ========================
+    if (status === "CHECKED_IN") {
+      if (Array.isArray(kycIds) && kycIds.length > 0) {
+        booking.kycIds = kycIds;
+      }
+      booking.checkInVerified = true;
+    }
+
+    // ========================
+    // Update Booking
+    // ========================
+    booking.status = status;
+
+    booking.modificationHistory.push({
+      modifiedBy: req.user.id,
+      changes: { status },
+      modifiedAt: new Date()
+    });
+
+    await booking.save();
+
+    res.status(200).json({
+      message: `Booking successfully updated to ${status}`,
+      booking
+    });
+
+  } catch (error) {
+    console.error("Update booking error:", error);
+    res.status(500).json({
+      message: error.message || "Failed to update booking"
+    });
+  }
 };
 
 // ================= GET CHECK-IN HISTORY =================
