@@ -124,7 +124,7 @@ exports.submitKyc = async (req, res) => {
 
 exports.listMyKyc = async (req, res) => {
     try {
-        console.log("req.user.id", req.user.id)
+        
         const filter = {
             userId: req.user.id
         };
@@ -133,7 +133,7 @@ exports.listMyKyc = async (req, res) => {
         if (req.query.status) {
             filter.kycStatus = req.query.status;
         }
-        console.log("filter", filter)
+        
         const kycs = await Kyc.find(filter)
             .populate("userId", "phone")
             .populate("verifiedBy", "name")
