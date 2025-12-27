@@ -55,7 +55,7 @@ exports.initiateBookingWithPayment = async (req, res) => {
                     },
                     order_meta: {
                         // Optional: where to send the user after payment if not using modal
-                        return_url: "http://localhost:5173/payment-verify?order_id={order_id}"
+                        return_url: "http://3.7.252.110:5000/payment-verify?order_id={order_id}"
                     }
                 },
                 {

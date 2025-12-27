@@ -117,7 +117,7 @@ export default function App() {
           <Route path="/admin/kyc" element={<AdminKyc />} />
           <Route path="/bookings" element={<KycGuard allow="APPROVED"><AdminBookingList /></KycGuard>} />
           <Route path="/bookings/:id" element={<AdminBookingDetail />} />
-          <Route path="/kyc-list" element={<MyKyc />} />
+          <Route path="/kyc-list" element={<KycGuard allow="APPROVED"><MyKyc /></KycGuard>} />
 
 
           {/* Finance */}

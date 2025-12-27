@@ -45,7 +45,7 @@ export default function MasterDocumentVault() {
   };
 
   const selectAndFormatDoc = (doc) => {
-    const baseUrl = import.meta.env.VITE_APP_API_BASE_URL || "http://localhost:5000";
+    const baseUrl = import.meta.env.VITE_APP_API_BASE_URL || "http://3.7.252.110/:5000";
     const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     const cleanPath = doc.fileUrl?.startsWith('/') ? doc.fileUrl : `/${doc.fileUrl}`;
     const fullUrl = doc.fileUrl?.startsWith('http') ? doc.fileUrl : `${cleanBase}${cleanPath}`;
