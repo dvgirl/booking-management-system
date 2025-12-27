@@ -38,10 +38,7 @@ exports.verifyKyc = async (req, res) => {
 
 exports.submitKyc = async (req, res) => {
     try {
-        const userId =
-            req.user?._id ||
-            req.user?.id ||
-            req.userId;
+        const userId = req.user?._id || req.user?.id || req.userId;
 
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -50,52 +47,62 @@ exports.submitKyc = async (req, res) => {
         const { self, spouse, children, bookingId } = req.body;
         const createdKycs = [];
 
-        if (self && req.files?.selfAadhaar?.[0]) {
-            const data = JSON.parse(self);
-
-            const kyc = await Kyc.create({
-                userId,
-                type: "SELF",
-                fullName: data.name,
-                aadhaarLast4: data.aadhaarLast4 || "0000",
-                documentUrl: req.files.selfAadhaar[0].path
-            });
-
-            createdKycs.push(kyc._id);
+        // 1. Check if the Aadhaar file exists
+        if (!req.files?.selfAadhaar?.[0]) {
+            return res.status(400).json({ message: "Aadhaar document file is required." });
         }
 
-        if (spouse && req.files?.spouseAadhaar?.[0]) {
-            const data = JSON.parse(spouse);
+        const commonDocumentUrl = req.files.selfAadhaar[0].path;
+        
+        // 2. Parse Self Data and extract the Aadhaar Last 4 digits
+        const selfData = JSON.parse(self);
+        // Use the last 4 digits sent by frontend, or default to 0000 if somehow missing
+        const extractedAadhaarLast4 = selfData.aadhaarLast4 || "0000";
 
-            const kyc = await Kyc.create({
-                userId,
-                type: "SPOUSE",
-                fullName: data.name,
-                aadhaarLast4: data.aadhaarLast4 || "0000",
-                documentUrl: req.files.spouseAadhaar[0].path
-            });
+        // 3. Create entry for SELF
+        const kycSelf = await Kyc.create({
+            userId,
+            type: "SELF",
+            fullName: selfData.name,
+            aadhaarLast4: extractedAadhaarLast4,
+            documentUrl: commonDocumentUrl,
+            kycStatus: "PENDING"
+        });
+        createdKycs.push(kycSelf._id);
 
-            createdKycs.push(kyc._id);
-        }
-
-        if (children && req.files?.childrenAadhaar) {
-            const kids = JSON.parse(children);
-
-            for (let i = 0; i < kids.length; i++) {
-                if (!req.files.childrenAadhaar[i]) continue;
-
-                const kyc = await Kyc.create({
+        // 4. Create entry for SPOUSE (if name provided)
+        if (spouse) {
+            const spouseData = JSON.parse(spouse);
+            if (spouseData.name) {
+                const kycSpouse = await Kyc.create({
                     userId,
-                    type: "CHILD",
-                    fullName: kids[i].name,
-                    aadhaarLast4: kids[i].aadhaarLast4 || "0000",
-                    documentUrl: req.files.childrenAadhaar[i].path
+                    type: "SPOUSE",
+                    fullName: spouseData.name,
+                    aadhaarLast4: extractedAadhaarLast4, // Link to primary Aadhaar
+                    documentUrl: commonDocumentUrl
                 });
-
-                createdKycs.push(kyc._id);
+                createdKycs.push(kycSpouse._id);
             }
         }
 
+        // 5. Create entries for CHILDREN
+        if (children) {
+            const kids = JSON.parse(children);
+            for (let child of kids) {
+                if (child.name) {
+                    const kycChild = await Kyc.create({
+                        userId,
+                        type: "CHILD",
+                        fullName: child.name,
+                        aadhaarLast4: extractedAadhaarLast4, // Link to primary Aadhaar
+                        documentUrl: commonDocumentUrl
+                    });
+                    createdKycs.push(kycChild._id);
+                }
+            }
+        }
+
+        // 6. Update Booking with new KYC IDs
         if (bookingId && createdKycs.length) {
             await Booking.findByIdAndUpdate(
                 bookingId,
@@ -103,17 +110,21 @@ exports.submitKyc = async (req, res) => {
             );
         }
 
-        res.json({ message: "KYC submitted successfully" });
+        res.json({
+            message: "KYC submitted successfully",
+            count: createdKycs.length,
+            kycIds: createdKycs
+        });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "KYC submission failed" });
+        console.error("KYC Submission Error:", err);
+        res.status(500).json({ message: "Internal Server Error during KYC submission" });
     }
 };
 
 exports.listMyKyc = async (req, res) => {
     try {
-        console.log("req.user.id" , req.user.id)
+        console.log("req.user.id", req.user.id)
         const filter = {
             userId: req.user.id
         };
@@ -122,7 +133,7 @@ exports.listMyKyc = async (req, res) => {
         if (req.query.status) {
             filter.kycStatus = req.query.status;
         }
-        console.log("filter" , filter)
+        console.log("filter", filter)
         const kycs = await Kyc.find(filter)
             .populate("userId", "phone")
             .populate("verifiedBy", "name")
