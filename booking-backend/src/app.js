@@ -38,7 +38,7 @@ app.use("/api/reports/", require("./routes/report.routes"));
 app.use("/api/process", require("./routes/process.routes"));
 app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes"));
 
-const FRONTEND_PATH = path.join(__dirname, "..", "booking-frontend", "dist");
+const FRONTEND_PATH = path.join(__dirname, "..", "..", "booking-frontend", "dist");
 app.use(express.static(FRONTEND_PATH));
 
 app.use((req, res, next) => {
