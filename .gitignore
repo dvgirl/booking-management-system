@@ -11,3 +11,7 @@ backend/node_modules
 
 # logs
 *.log
+
+
+uploads/
+booking-backend/uploads/

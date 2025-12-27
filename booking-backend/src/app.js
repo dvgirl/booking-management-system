@@ -4,12 +4,34 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+const ensureDirExists = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+    console.log(`📁 Created directory: ${dirPath}`);
+  }
+};
+
+const uploadDirs = [
+  "uploads/kyc",
+  "uploads/admin/refunds",
+  "uploads/admin/scanned",
+  "uploads/manual",
+  "uploads/offline",
+  "uploads/online/kyc",
+  "uploads/online/user",
+  "uploads/system/generated"
+];
+
+uploadDirs.forEach(dir => {
+  ensureDirExists(path.join(__dirname, "..", dir));
+});
 
 app.use("/uploads/kyc", express.static("uploads/kyc"));
 app.use("/uploads/admin/refunds", express.static("uploads/admin/refunds"));
