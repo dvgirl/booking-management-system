@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const { generateOtp } = require("../utils/otp");
 const { sendSms } = require("../utils/twilio");
 const Kyc = require("../models/Kyc");
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ================= SEND OTP =================
 exports.sendOtp = async (req, res) => {
@@ -94,3 +96,49 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
+exports.googleLogin = async (req, res) => {
+  console.log("googleLogin call" )
+  try {
+    const { token } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { email, name, sub: googleId } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create user if they don't exist
+      user = await User.create({
+        email,
+        name,
+        googleId,
+        isVerified: true,
+        // Since Google doesn't always provide phone, we mark kyc as needed
+      });
+    }
+
+    const kyc = await Kyc.findOne({ userId: user._id });
+    let kycStatus = kyc ? kyc.kycStatus : "NOT_STARTED";
+
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Google Login successful",
+      token: jwtToken,
+      user,
+      isNewUser: !kyc,
+      kycStatus
+    });
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: "Google verification failed" });
+  }
+};

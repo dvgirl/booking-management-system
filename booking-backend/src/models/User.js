@@ -6,11 +6,13 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true 
   },
   email: {
-    type: String
+    type: String,
+    unique: true,
+    sparse: true
   },
   role: {
     type: String,
@@ -24,6 +26,20 @@ const userSchema = new mongoose.Schema({
   virtualAccountId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "VirtualAccount"
+  },
+  googleId: {
+    type: String,
+    index: true,
+    unique: true, // Recommended to prevent duplicate accounts
+    sparse: true
+  },
+  profilePic: {
+    type: String
+  },
+  authProvider: {
+    type: String,
+    enum: ["OTP", "GOOGLE"],
+    default: "OTP"
   }
 
 }, { timestamps: true });
