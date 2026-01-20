@@ -7,15 +7,11 @@ export default function Sidebar() {
     const location = useLocation();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-    // FIX: Refined Active Logic to prevent double highlighting
     const isActive = (path) => {
         if (location.pathname === path) return true;
-        
-        // Special case for Bookings vs Booking Calendar
         if (path === "/bookings") {
             return location.pathname.startsWith("/bookings/") && !location.pathname.startsWith("/bookings/calendar");
         }
-
         return location.pathname.startsWith(path + "/");
     };
 
@@ -102,54 +98,72 @@ export default function Sidebar() {
 
     return (
         <>
+            {/* Responsive Handle (Mobile Toggle) */}
             <button
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
-                className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900/80 backdrop-blur-md text-white p-2.5 rounded-xl border border-slate-700 shadow-lg hover:bg-slate-800 transition-all"
+                className={`
+                    lg:hidden fixed top-3 left-3 z-[60] 
+                    p-2.5 rounded-xl shadow-lg border border-white/10 backdrop-blur-md transition-all duration-300
+                    ${isMobileOpen 
+                        ? "bg-rose-500 text-white rotate-90" 
+                        : "bg-slate-900/90 text-white hover:bg-slate-800"
+                    }
+                `}
+                aria-label="Toggle Navigation"
             >
-                {isMobileOpen ? "✕" : "☰"}
+                {isMobileOpen ? (
+                    <span className="text-lg font-bold">✕</span>
+                ) : (
+                    <span className="text-lg font-bold">☰</span>
+                )}
             </button>
 
+            {/* Sidebar Container */}
             <aside
                 className={`
-                    fixed lg:static inset-y-0 left-0 z-40
+                    fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40
                     w-72 bg-[#0f172a] text-slate-200
                     border-r border-slate-800/60
-                    transform transition-transform duration-300 ease-out
+                    transform transition-transform duration-300 ease-out flex-shrink-0
                     ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
                     h-screen flex flex-col shadow-2xl
                 `}
             >
-                <div className="flex items-center justify-between px-6 py-8">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-blue-600 p-2 rounded-lg shadow-inner">
-                            <span className="text-xl">🏨</span>
-                        </div>
-                        <h2 className="text-lg font-bold tracking-tight text-white uppercase">
+                {/* Header */}
+                <div className="flex items-center gap-3 px-6 py-8">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg shadow-lg shadow-blue-900/50">
+                        <span className="text-xl">🏨</span>
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold tracking-tight text-white uppercase leading-none">
                             Guest Booking
                         </h2>
+                        <p className="text-[10px] text-slate-500 font-bold tracking-widest mt-1">MANAGEMENT</p>
                     </div>
                 </div>
 
+                {/* User Info Card */}
                 {user && (
                     <div className="mx-4 mb-6 p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl backdrop-blur-sm">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md ring-2 ring-slate-700/50">
                                 {(user.name || user.role || "U").charAt(0).toUpperCase()}
                             </div>
                             <div className="overflow-hidden">
-                                <p className="font-medium text-slate-100 truncate">
+                                <p className="font-medium text-slate-100 truncate text-sm">
                                     {user.name || user.phone || "User"}
                                 </p>
-                                <p className="text-blue-400 text-[11px] font-bold uppercase tracking-wider">
-                                    {user.role} {user.role === "USER" && `(${user.kycStatus || 'PENDING'})`}
+                                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">
+                                    {user.role}
                                 </p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pb-6">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p>
+                {/* Navigation Menu - Hidden Scrollbar */}
+                <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Menu</p>
                     {filteredMenuItems.map((item) => {
                         const active = isActive(item.path);
                         return (
@@ -158,30 +172,35 @@ export default function Sidebar() {
                                 to={item.path}
                                 onClick={() => setIsMobileOpen(false)}
                                 className={`
-                                    group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                                    group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200
                                     ${active
-                                        ? "bg-blue-600/10 text-blue-400 font-semibold border-l-4 border-blue-500"
-                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border-l-4 border-transparent"
+                                        ? "bg-blue-600 text-white font-medium shadow-lg shadow-blue-900/30"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
                                     }
                                 `}
                             >
-                                <span className={`text-xl transition-transform group-hover:scale-110 ${active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}>
+                                <span className={`text-xl transition-transform group-hover:scale-110 ${active ? "text-white" : "text-slate-500 group-hover:text-white"}`}>
                                     {item.icon}
                                 </span>
                                 <span className="text-sm tracking-wide">{item.label}</span>
+                                {active && <span className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
                             </Link>
                         );
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-800/60">
-                    <p className="text-[10px] text-center text-slate-500">© 2025 Admin Panel v2.0</p>
+                {/* Footer */}
+                <div className="p-4 border-t border-slate-800/60 bg-[#0f172a]">
+                    <p className="text-[10px] text-center text-slate-600 font-medium">
+                        v2.0 &bull; © {new Date().getFullYear()} Booking System
+                    </p>
                 </div>
             </aside>
 
+            {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30"
+                    className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-30 animate-in fade-in duration-200"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}

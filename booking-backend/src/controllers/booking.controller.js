@@ -79,7 +79,7 @@ exports.getBookingsByStatus = async (req, res) => {
 
         // 🔐 If NOT admin → restrict to own bookings only
         if (req.user.role !== "ADMIN") {
-            filter.userId = req.user._id;
+            filter.userId = req.user.id;
         }
 
         const bookings = await Booking.find(filter)

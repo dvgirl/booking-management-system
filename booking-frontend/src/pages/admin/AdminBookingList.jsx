@@ -6,7 +6,7 @@ import {
   updateBookingStatus
 } from "../../api/booking.api";
 import {
-  FiCheckCircle, FiXCircle, FiLogIn, FiLogOut,
+  FiCheckCircle, FiXCircle,
   FiAlertCircle, FiLoader, FiRefreshCw, FiSearch
 } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -19,16 +19,17 @@ export default function AdminBookingList() {
   const [actionLoading, setActionLoading] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ================= FETCH LOGIC (Using Status API) =================
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const canPerformActions = user?.role === 'ADMIN';
+
+  // ================= FETCH LOGIC =================
   const loadBookings = useCallback(async () => {
     setLoading(true);
     try {
       let res;
       if (activeTab === "HISTORY") {
-        // Fetch ALL for history tab
         res = await getBookings();
       } else {
-        // Fetch specific status for PENDING or CONFIRMED
         res = await getBookingsByStatus(activeTab);
       }
       setBookings(res?.data || []);
@@ -146,8 +147,13 @@ export default function AdminBookingList() {
                     <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Guest & Source</th>
                     <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Room</th>
                     <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stay Dates</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status/Payment</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment</th>
+
+                    {/* 2. CONDITIONAL HEADER */}
+                    {canPerformActions && (
+                      <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -180,52 +186,73 @@ export default function AdminBookingList() {
                         </div>
                       </td>
 
+                      {/* --- UPDATED STATUS/PAYMENT COLUMN: STRICT ROWS --- */}
                       <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1">
-                          <span className={`w-fit px-3 py-1 rounded-full text-[8px] font-black uppercase border ${
-                            booking.status === "CONFIRMED" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                            booking.status === "CHECKED_IN" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                            booking.status === "CANCELLED" ? "bg-rose-50 text-rose-700 border-rose-100" :
-                            "bg-amber-50 text-amber-700 border-amber-100"
-                          }`}>
-                            {booking.status}
-                          </span>
-                          <span className={`text-[8px] font-bold ${booking.paymentStatus === 'PAID' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            ● {booking.paymentStatus}
+                        <div className="flex flex-col items-start gap-3">
+
+                          {/* Row 1: Booking Status */}
+                          <span className={`
+                            inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm
+                            ${booking.status === "CONFIRMED" ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
+                              booking.status === "CHECKED_IN" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                booking.status === "CHECKED_OUT" ? "bg-slate-100 text-slate-600 border-slate-200" :
+                                  booking.status === "CANCELLED" ? "bg-rose-50 text-rose-700 border-rose-100" :
+                                    "bg-amber-50 text-amber-700 border-amber-100"}
+                          `}>
+                            {booking.status.replace("_", " ")}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-6 py-5 text-right">
-                        {actionLoading === booking._id ? (
-                          <FiLoader className="animate-spin text-blue-600 ml-auto" />
-                        ) : (
-                          <div className="flex justify-end gap-2">
-                            {booking.status === "PENDING" && (
-                              <>
-                                <button onClick={() => handleAction(booking, "CONFIRMED")} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><FiCheckCircle size={20} /></button>
-                                <button onClick={() => handleAction(booking, "CANCELLED")} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"><FiXCircle size={20} /></button>
-                              </>
-                            )}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col items-start gap-3">
 
-                            {booking.status === "CONFIRMED" && (
-                              <button onClick={() => handleAction(booking, "CHECKED_IN")} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-blue-700">
-                                Check In
-                              </button>
-                            )}
-
-                            {booking.status === "CHECKED_IN" && (
-                              <button onClick={() => handleAction(booking, "CHECKED_OUT")} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-[10px] font-black uppercase hover:bg-orange-600">
-                                Check Out
-                              </button>
-                            )}
-
-                            {activeTab === "HISTORY" && (booking.status === "CHECKED_OUT" || booking.status === "CANCELLED") && (
-                              <span className="text-[10px] font-black text-slate-300 uppercase italic">Closed</span>
-                            )}
-                          </div>
-                        )}
+                          {/* Row 2: Payment Status */}
+                          <span className={`
+                            text-[10px] font-bold px-2 py-0.5 rounded border-l-2
+                            ${booking.paymentStatus === 'PAID'
+                              ? "text-slate-600 border-emerald-500 bg-emerald-50/30"
+                              : "text-rose-600 border-rose-500 bg-rose-50/30"}
+                          `}>
+                            Payment: {booking.paymentStatus}
+                          </span>
+                        </div>
                       </td>
+                      {/* --- END UPDATED COLUMN --- */}
+
+                      {/* 3. CONDITIONAL BODY */}
+                      {canPerformActions && (
+                        <td className="px-6 py-5 text-right">
+                          {actionLoading === booking._id ? (
+                            <FiLoader className="animate-spin text-blue-600 ml-auto" />
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              {booking.status === "PENDING" && (
+                                <>
+                                  <button onClick={() => handleAction(booking, "CONFIRMED")} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><FiCheckCircle size={20} /></button>
+                                  <button onClick={() => handleAction(booking, "CANCELLED")} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"><FiXCircle size={20} /></button>
+                                </>
+                              )}
+
+                              {booking.status === "CONFIRMED" && (
+                                <button onClick={() => handleAction(booking, "CHECKED_IN")} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-blue-700">
+                                  Check In
+                                </button>
+                              )}
+
+                              {booking.status === "CHECKED_IN" && (
+                                <button onClick={() => handleAction(booking, "CHECKED_OUT")} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-[10px] font-black uppercase hover:bg-orange-600">
+                                  Check Out
+                                </button>
+                              )}
+
+                              {activeTab === "HISTORY" && (booking.status === "CHECKED_OUT" || booking.status === "CANCELLED") && (
+                                <span className="text-[10px] font-black text-slate-300 uppercase italic">Closed</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -236,4 +263,4 @@ export default function AdminBookingList() {
       </div>
     </div>
   );
-} 
+}
