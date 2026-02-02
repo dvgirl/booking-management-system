@@ -4,7 +4,7 @@ import { AuthContext, ROLES } from "../context/AuthContext";
 
 export default function Sidebar() {
     const { user } = useContext(AuthContext);
-    const location = useLocation();
+    const location = useLocation(); 
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const isActive = (path) => {
@@ -21,6 +21,12 @@ export default function Sidebar() {
             label: "Dashboard",
             icon: "📊",
             roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FRONT_DESK, ROLES.ACCOUNTANT, ROLES.OFFICER],
+        },
+         {
+            path: "/admin/hotels",
+            label: "Hotels",
+            icon: "🏨",
+            roles: [ROLES.SUPER_ADMIN],
         },
         {
             path: "/bookings",
@@ -80,7 +86,7 @@ export default function Sidebar() {
             path: "/bookings/calendar",
             label: "Booking Calendar",
             icon: "📅",
-            roles: [ROLES.USER, ROLES.GUEST, ROLES.SUPER_ADMIN, ROLES.ADMIN]
+            roles: [ROLES.USER, ROLES.GUEST]
         }
     ];
 

@@ -66,6 +66,7 @@ import MasterDocumentVault from "./pages/documents/MasterDocumentVault";
 
 import PendingKyc from "./pages/kyc/PendingKyc";
 import MyKyc from "./pages/user/Mykyc.jsx";
+import HotelPortfolio from "./pages/admin/HotelPortfolio.jsx";
 
 export default function App() {
   return (
@@ -152,6 +153,11 @@ export default function App() {
           <Route path="/documents/list" element={<DocumentList />} />
           <Route path="/documents/generate" element={<DocumentGenerate />} />
           <Route path="/documents/:id/preview" element={<DocumentPreview />} />
+
+          <Route
+            path="/admin/hotels"
+            element={<ProtectedRoute roles={["SUPER_ADMIN"]}><HotelPortfolio /></ProtectedRoute>}
+          />
 
           {/* Catch all - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

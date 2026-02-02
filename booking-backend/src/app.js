@@ -59,6 +59,8 @@ app.use("/api/admin/facility-block", require("./routes/facilityBlock.routes"));
 app.use("/api/reports/", require("./routes/report.routes"));
 app.use("/api/process", require("./routes/process.routes"));
 app.use("/api/admin/virtual-accounts", require("./routes/virtualAccount.routes"));
+app.use("/api/hotels", require("./routes/hotel.routes"));
+
 
 const FRONTEND_PATH = path.join(__dirname, "..", "..", "booking-frontend", "dist");
 app.use(express.static(FRONTEND_PATH));

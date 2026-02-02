@@ -3,8 +3,30 @@ const Room = require("../models/Room");
 
 exports.getAllRooms = async (req, res) => {
   try {
+    const { role, hotelId } = req.user; // Extracted from Auth middleware
+    const { city, state, type } = req.query; // Filters from frontend
+
+    // 1. Build the Dynamic Match Filter
+    let matchFilter = { isBlocked: false };
+
+    // BOUNDARY LOGIC:
+    // If Admin, lock them to their specific hotelId
+    if (role === "ADMIN") {
+      if (!hotelId) {
+        return res.status(403).json({ message: "Admin not assigned to a hotel" });
+      }
+      matchFilter.hotelId = hotelId; 
+    }
+
+    // QUERY FILTERS:
+    // Apply city/state filters if they are provided in the URL (e.g., ?city=Mumbai)
+    if (city) matchFilter.city = { $regex: city, $options: "i" };
+    if (state) matchFilter.state = { $regex: state, $options: "i" };
+    if (type) matchFilter.type = type;
+
+    // 2. Execute Aggregation
     const rooms = await Room.aggregate([
-      { $match: { isBlocked: false } },
+      { $match: matchFilter },
       {
         $lookup: {
           from: "bookings",
@@ -18,6 +40,16 @@ exports.getAllRooms = async (req, res) => {
           bookingsCount: { $size: "$bookings" }
         }
       },
+      // Optional: Lookup Hotel details if needed for display
+      {
+        $lookup: {
+          from: "hotels",
+          localField: "hotelId",
+          foreignField: "_id",
+          as: "hotelDetails"
+        }
+      },
+      { $unwind: { path: "$hotelDetails", preserveNullAndEmptyArrays: true } },
       { $sort: { roomNumber: 1 } },
       {
         $project: {
@@ -32,7 +64,6 @@ exports.getAllRooms = async (req, res) => {
     res.status(500).json({ message: "Error fetching rooms" });
   }
 };
-
 
 // ================= GET ROOM BY ID =================
 exports.getRoomById = async (req, res) => {
@@ -51,18 +82,42 @@ exports.getRoomById = async (req, res) => {
 // ================= CREATE ROOM (ADMIN) =================
 exports.createRoom = async (req, res) => {
     try {
-        const { roomNumber, type, price, amenities, allowedRoles, description, capacity } = req.body;
+        const { 
+            roomNumber, 
+            type, 
+            price, 
+            amenities, 
+            allowedRoles, 
+            description, 
+            capacity,
+            // New fields from request body
+            city,
+            state,
+            hotelId 
+        } = req.body;
 
-        if (!roomNumber || !price) {
-            return res.status(400).json({ message: "Room number and price are required" });
+        // 1. Enhanced Validation
+        if (!roomNumber || !price || !city || !state) {
+            return res.status(400).json({ 
+                message: "Room number, price, city, and state are required" 
+            });
         }
 
-        // Check if room number already exists
-        const existingRoom = await Room.findOne({ roomNumber });
+        // 2. Scoped Uniqueness Check
+        // We check if the room number exists WITHIN the same hotel/city context
+        const query = { roomNumber };
+        if (hotelId) query.hotelId = hotelId;
+        else query.city = city; // Fallback if hotelId isn't implemented yet
+
+        const existingRoom = await Room.findOne(query);
+        
         if (existingRoom) {
-            return res.status(400).json({ message: "Room number already exists" });
+            return res.status(400).json({ 
+                message: `Room ${roomNumber} already exists in ${city}` 
+            });
         }
 
+        // 3. Create Room with Location Metadata
         const room = await Room.create({
             roomNumber,
             type: type || "Standard",
@@ -71,7 +126,11 @@ exports.createRoom = async (req, res) => {
             allowedRoles: allowedRoles || ["USER", "ADMIN", "SUPER_ADMIN"],
             description: description || "",
             capacity: capacity || 1,
-            isBlocked: false
+            isBlocked: false,
+            // New fields added incrementally
+            city,
+            state,
+            hotelId: hotelId || null // Ensure this matches your User's hotel context
         });
 
         res.status(201).json({
@@ -88,21 +147,52 @@ exports.createRoom = async (req, res) => {
 exports.updateRoom = async (req, res) => {
     try {
         const { id } = req.params;
-        const { roomNumber, type, price, amenities, allowedRoles, description, capacity, isBlocked } = req.body;
+        const { 
+            roomNumber, 
+            type, 
+            price, 
+            amenities, 
+            allowedRoles, 
+            description, 
+            capacity, 
+            isBlocked,
+            // New fields to support multi-hotel/location
+            city,
+            state,
+            hotelId 
+        } = req.body;
 
         const room = await Room.findById(id);
         if (!room) {
             return res.status(404).json({ message: "Room not found" });
         }
 
-        // // Check if room number already exists (excluding current room)
-        // if (roomNumber && roomNumber !== room.roomNumber) {
-        //     const existingRoom = await Room.findOne({ roomNumber });
-        //     if (existingRoom) {
-        //         return res.status(400).json({ message: "Room number already exists" });
-        //     }
-        // }
+        // 1. Scoped Uniqueness Check
+        // If the roomNumber is being changed, check if it's already taken 
+        // in the specific hotel/location context.
+        if (roomNumber && roomNumber.toString() !== room.roomNumber.toString()) {
+            const contextHotelId = hotelId || room.hotelId;
+            const contextCity = city || room.city;
 
+            const duplicateQuery = { 
+                roomNumber, 
+                _id: { $ne: id } // Exclude the current room
+            };
+
+            // Ensure we check within the correct hotel boundary
+            if (contextHotelId) duplicateQuery.hotelId = contextHotelId;
+            else if (contextCity) duplicateQuery.city = contextCity;
+
+            const existingRoom = await Room.findOne(duplicateQuery);
+            if (existingRoom) {
+                return res.status(400).json({ 
+                    message: `Room number ${roomNumber} already exists in this location.` 
+                });
+            }
+        }
+
+        // 2. Perform Incremental Update
+        // We use the spread operator or explicit mapping to ensure new fields are saved
         const updatedRoom = await Room.findByIdAndUpdate(
             id,
             {
@@ -113,9 +203,13 @@ exports.updateRoom = async (req, res) => {
                 allowedRoles: allowedRoles || room.allowedRoles,
                 description: description !== undefined ? description : room.description,
                 capacity: capacity || room.capacity,
-                isBlocked: isBlocked !== undefined ? isBlocked : room.isBlocked
+                isBlocked: isBlocked !== undefined ? isBlocked : room.isBlocked,
+                // Add new location/tenant fields
+                city: city || room.city,
+                state: state || room.state,
+                hotelId: hotelId || room.hotelId
             },
-            { new: true }
+            { new: true, runValidators: true }
         );
 
         res.json({

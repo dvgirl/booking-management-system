@@ -146,7 +146,7 @@ export default function TransactionList() {
             className="flex items-center gap-2 px-8 py-3.5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm font-black text-[10px] uppercase tracking-widest text-slate-600 hover:text-indigo-600"
           >
             <FiRefreshCw className={loading ? "animate-spin" : ""} />
-            Sync Records
+            Refresh
           </button>
         </header>
 

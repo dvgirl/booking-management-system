@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     unique: true,
-    sparse: true 
+    sparse: true
   },
   email: {
     type: String,
@@ -40,7 +40,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["OTP", "GOOGLE"],
     default: "OTP"
-  }
+  },
+  hotelId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hotel',
+    default: null
+  }, // Crucial for Admins
 
 }, { timestamps: true });
 

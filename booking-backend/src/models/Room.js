@@ -21,6 +21,13 @@ const roomSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    hotelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Hotel',
+      required: false // Set to false initially to prevent breaking existing records
+    },
+    city: { type: String },
+    state: { type: String },
     allowedRoles: [{
       type: String,
       enum: ["USER", "ADMIN", "SUPER_ADMIN"],

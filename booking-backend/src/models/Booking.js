@@ -22,9 +22,16 @@ const bookingSchema = new mongoose.Schema({
     ],
     default: "PENDING"
   },
+  hotelId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hotel',
+    required: false // Set to false initially to prevent breaking existing records
+  },
+  city: { type: String },
+  state: { type: String },
   bookingSource: {
     type: String,
-    enum: ["ONLINE", "ADMIN" , "CASH"],
+    enum: ["ONLINE", "ADMIN", "CASH"],
     default: "ONLINE"
   },
   kycIds: [{

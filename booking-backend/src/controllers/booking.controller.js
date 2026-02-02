@@ -72,15 +72,21 @@ exports.getBookingsByStatus = async (req, res) => {
         const { status } = req.query;
         const filter = {};
 
-        // Apply status filter if provided
+        // 1. Status Filter
         if (status) {
             filter.status = status.toUpperCase();
         }
 
-        // 🔐 If NOT admin → restrict to own bookings only
-        if (req.user.role !== "ADMIN") {
+        // 2. 🔐 Role-Based Access Control
+        if (req.user.role === "ADMIN") {
+            // Admin only sees bookings for their assigned hotel
+            // Assumes Booking model has a 'hotelId' field
+            filter.hotelId = req.user.hotelId;
+        } else if (req.user.role === "USER") {
+            // Regular users see only their own bookings
             filter.userId = req.user.id;
-        }
+        } 
+        // Note: If role is SUPER_ADMIN, no filter is added (sees all)
 
         const bookings = await Booking.find(filter)
             .populate("userId", "name phone")
@@ -142,31 +148,61 @@ const releaseInventory = async (booking) => {
 // ================= CHECK AVAILABILITY =================
 exports.checkAvailability = async (req, res) => {
     try {
-        const { checkIn, checkOut } = req.query;
-        const userRole = req.user.role; // Get user role from auth middleware
+        const { checkIn, checkOut, city } = req.query;
+        const userRole = req.user.role; 
 
         if (!checkIn || !checkOut) {
-            return res.status(400).json({ message: "Dates required" });
+            return res.status(400).json({ message: "Check-in and Check-out dates are required" });
         }
 
+        // 1. Find all rooms that are ALREADY booked for these dates
+        // Logic: (Existing CheckIn < User CheckOut) AND (Existing CheckOut > User CheckIn)
         const bookedRooms = await Booking.find({
             status: { $ne: "CANCELLED" },
-            checkIn: { $lt: new Date(checkOut) },
-            checkOut: { $gt: new Date(checkIn) }
+            $or: [
+                {
+                    checkIn: { $lt: new Date(checkOut) },
+                    checkOut: { $gt: new Date(checkIn) }
+                }
+            ]
         }).select("roomId");
 
         const bookedRoomIds = bookedRooms.map(b => b.roomId);
 
-        const availableRooms = await Room.find({
+        // 2. Build the Room Query
+        let roomQuery = {
             isBlocked: false,
             _id: { $nin: bookedRoomIds },
-            allowedRoles: { $in: [userRole] } // Filter by user role
+            allowedRoles: { $in: [userRole] }
+        };
+
+        // 3. Multi-Hotel / City Filtering
+        // If the user typed a city in the frontend search bar, filter rooms by that city
+        if (city && city.trim() !== "") {
+            roomQuery.city = { $regex: city.trim(), $options: "i" }; // Case-insensitive search
+        }
+
+        // 4. Fetch Available Rooms and POPULATE Hotel Details
+        // We populate 'hotelId' to get the Hotel Name, Full Address, etc.
+        const availableRooms = await Room.find(roomQuery)
+            .populate({
+                path: 'hotelId',
+                select: 'name city state address description'
+            })
+            .sort({ price: 1 }); // Sort by cheapest first for better UX
+
+        res.status(200).json({
+            success: true,
+            count: availableRooms.length,
+            availableRooms
         });
 
-        res.json({ availableRooms });
     } catch (error) {
         console.error("Error checking availability:", error);
-        res.status(500).json({ message: error.message || "Error checking availability" });
+        res.status(500).json({ 
+            success: false, 
+            message: error.message || "Error checking availability" 
+        });
     }
 };
 
